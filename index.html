@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Retro Kiosk Clock</title>
+    <title>Clock Matrix</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
 
@@ -40,14 +40,21 @@
         filter: brightness(0.55);
       }
 
-      /* main bedside layout: matrix on top, big time + info row below */
+      /* main bedside layout: matrix on top, big time + info row below.
+     Sized with vh (not vw) because in phone-browser landscape the limiting
+     dimension is height -- e.g. an LG K20 Plus is ~640x360 CSS px landscape,
+     and a visible address bar shrinks that further. vh keeps everything
+     proportional to whatever height is actually available so nothing gets
+     clipped by the overflow:hidden below. */
       .screen {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 18px;
+        gap: 1.5vh;
         letter-spacing: 2px;
-        padding: 16px 32px;
+        padding: 2vh 4vw;
+        max-height: 100vh;
+        box-sizing: border-box;
       }
 
       .main-row {
@@ -55,14 +62,14 @@
         flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: clamp(24px, 6vw, 64px);
+        gap: clamp(16px, 5vw, 48px);
       }
 
       .info-col {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 14px;
+        gap: clamp(4px, 1.4vh, 12px);
       }
 
       .icon {
@@ -73,8 +80,8 @@
       .dot-icon {
         display: grid;
         grid-template-columns: repeat(21, 1fr);
-        gap: 3px;
-        width: clamp(160px, 20vw, 220px);
+        gap: 2px;
+        width: clamp(70px, 24vh, 200px);
       }
 
       .dot-icon span {
@@ -99,8 +106,9 @@
       }
 
       .weather {
-        font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+        font-size: clamp(0.55rem, 3vh, 1.1rem);
         text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .accent {
@@ -108,27 +116,29 @@
       }
 
       .time {
-        font-size: clamp(4rem, 14vw, 9rem);
+        font-size: clamp(1.8rem, 16vh, 7rem);
         line-height: 1;
         letter-spacing: 4px;
       }
 
       .date {
-        font-size: clamp(0.9rem, 1.6vw, 1.2rem);
+        font-size: clamp(0.55rem, 3vh, 1.1rem);
         text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .prompt-box {
-        margin-top: 12px;
+        margin-top: 0;
         border: 1px solid #444;
         border-radius: 25px;
-        padding: 8px 24px;
-        font-size: 0.85rem;
+        padding: clamp(3px, 0.8vh, 8px) clamp(10px, 2vw, 24px);
+        font-size: clamp(0.5rem, 2.2vh, 0.85rem);
         color: #888;
         background: none;
         font-family: inherit;
         letter-spacing: inherit;
         cursor: pointer;
+        white-space: nowrap;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -157,13 +167,13 @@
       @media (orientation: portrait) {
         .main-row {
           flex-direction: column;
-          gap: 20px;
+          gap: 2vh;
         }
         .info-col {
           align-items: center;
         }
         .time {
-          font-size: clamp(3.5rem, 20vw, 7rem);
+          font-size: clamp(2.5rem, 12vh, 6rem);
         }
       }
     </style>
@@ -348,20 +358,30 @@
       }
 
       // live weather: Open-Meteo is free, no API key needed, coordinates for Austin, TX
-      async function updateWeather() {
-        try {
-          const url =
-            "https://api.open-meteo.com/v1/forecast?latitude=30.27&longitude=-97.74&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FChicago";
-          const res = await fetch(url);
-          const data = await res.json();
-          const high = Math.round(data.daily.temperature_2m_max[0]);
-          const low = Math.round(data.daily.temperature_2m_min[0]);
-          document.getElementById("temp-high").textContent = high + "°";
-          document.getElementById("temp-low").textContent = low + "°";
-        } catch (e) {
-          document.getElementById("temp-high").textContent = "--°";
-          document.getElementById("temp-low").textContent = "--°";
+      function updateWeather() {
+        var highEl = document.getElementById("temp-high");
+        var lowEl = document.getElementById("temp-low");
+        if (typeof fetch !== "function") {
+          highEl.textContent = "--°";
+          lowEl.textContent = "--°";
+          return;
         }
+        var url =
+          "https://api.open-meteo.com/v1/forecast?latitude=30.27&longitude=-97.74&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FChicago";
+        fetch(url)
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (data) {
+            var high = Math.round(data.daily.temperature_2m_max[0]);
+            var low = Math.round(data.daily.temperature_2m_min[0]);
+            highEl.textContent = high + "°";
+            lowEl.textContent = low + "°";
+          })
+          .catch(function () {
+            highEl.textContent = "--°";
+            lowEl.textContent = "--°";
+          });
       }
 
       // lightweight on-screen stats so you can see at a glance if memory is climbing
@@ -389,16 +409,16 @@
 
       // keep the screen awake -- a software fallback alongside any native
       // FLAG_KEEP_SCREEN_ON / kiosk launcher setting on the device itself
-      async function requestWakeLock() {
+      function requestWakeLock() {
         try {
           if ("wakeLock" in navigator) {
-            await navigator.wakeLock.request("screen");
+            navigator.wakeLock.request("screen").catch(function () {});
           }
         } catch (e) {
           // wake lock isn't available/granted -- not critical, fail silently
         }
       }
-      document.addEventListener("visibilitychange", () => {
+      document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") requestWakeLock();
       });
       requestWakeLock();
@@ -418,16 +438,20 @@
 
       // manual "clear memory" button -- a full reload flushes the JS heap and DOM
       // instantly, cheapest fix if the device slows down after a long uptime
-      document.getElementById("clear-btn").addEventListener("click", () => {
-        location.reload();
-      });
+      document
+        .getElementById("clear-btn")
+        .addEventListener("click", function () {
+          location.reload();
+        });
 
       // the kiosk clock is designed to run for weeks unattended: buffers above are
       // fixed-size and reused every tick, so there's nothing to leak. as a safety
       // net on very low-RAM hardware, do a full silent self-refresh periodically
       // to guarantee a clean slate.
       const SELF_CLEAN_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
-      setTimeout(() => location.reload(), SELF_CLEAN_INTERVAL_MS);
+      setTimeout(function () {
+        location.reload();
+      }, SELF_CLEAN_INTERVAL_MS);
     </script>
   </body>
 </html>
