@@ -358,31 +358,6 @@
       }
 
       // live weather: Open-Meteo is free, no API key needed, coordinates for Austin, TX
-      function updateWeather() {
-        var highEl = document.getElementById("temp-high");
-        var lowEl = document.getElementById("temp-low");
-        if (typeof fetch !== "function") {
-          highEl.textContent = "--°";
-          lowEl.textContent = "--°";
-          return;
-        }
-        var url =
-          "https://api.open-meteo.com/v1/forecast?latitude=30.27&longitude=-97.74&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America%2FChicago";
-        fetch(url)
-          .then(function (res) {
-            return res.json();
-          })
-          .then(function (data) {
-            var high = Math.round(data.daily.temperature_2m_max[0]);
-            var low = Math.round(data.daily.temperature_2m_min[0]);
-            highEl.textContent = high + "°";
-            lowEl.textContent = low + "°";
-          })
-          .catch(function () {
-            highEl.textContent = "--°";
-            lowEl.textContent = "--°";
-          });
-      }
 
       // lightweight on-screen stats so you can see at a glance if memory is climbing
       const statsEl = document.getElementById("stats");
@@ -428,9 +403,6 @@
 
       updateNightDim();
       setInterval(updateNightDim, 60 * 1000); // check every minute
-
-      updateWeather();
-      setInterval(updateWeather, 30 * 60 * 1000); // weather barely changes, refresh every 30 min
 
       render();
       updateStats();
