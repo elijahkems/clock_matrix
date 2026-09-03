@@ -18,7 +18,7 @@
       }
 
       * {
-        background-color: var(--bg-color);
+        background-color: transparent;
         box-sizing: border-box;
       }
 
@@ -28,6 +28,7 @@
         padding: 0;
         height: 100%;
         width: 100%;
+        background-color: var(--bg-color);
         color: var(--text-main);
         font-family: "DotGothic16", monospace;
         overflow: hidden;
@@ -45,37 +46,58 @@
         filter: brightness(0.55);
       }
 
-      /* Fullscreen Landscape Layout (Tight 640x320 optimized) */
+      /* Screen Container */
       .screen {
+        position: relative;
         display: flex;
         flex-direction: row;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
         width: 100vw;
         height: 100vh;
-        padding: 0;
+        padding: 0 6vw;
         margin: 0;
-        gap: clamp(4px, 1.5vw, 16px);
+        overflow: hidden;
       }
 
-      /* Left Side: Clock + Info flush together */
+      /* Foreground Clock & Info Layer */
       .left-col {
+        position: relative;
+        z-index: 2;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 1vh;
-        flex: 1;
-        height: 100%;
+        gap: 1.5vh;
+        padding-left: 6vw;
+        text-align: center;
       }
 
-      /* Right Side: Dot Matrix Icon maximized */
+      /* Background Dot Matrix Layer with Melt Gradient */
       .right-col {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
         align-items: center;
-        flex: 1;
+        width: 65vw;
         height: 100%;
+        pointer-events: none;
+
+        /* Melt matrix effect: sharp on right, dissolves to transparent on left */
+        -webkit-mask-image: linear-gradient(
+          to left,
+          rgba(0, 0, 0, 1) 25%,
+          rgba(0, 0, 0, 0) 95%
+        );
+        mask-image: linear-gradient(
+          to left,
+          rgba(0, 0, 0, 1) 25%,
+          rgba(0, 0, 0, 0) 95%
+        );
       }
 
       .info-col {
@@ -89,13 +111,14 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        width: 100%;
       }
 
       .dot-icon {
         display: grid;
         grid-template-columns: repeat(21, 1fr);
         gap: 2px;
-        width: clamp(120px, 82vh, 310px);
+        width: clamp(140px, 85vh, 360px);
       }
 
       .dot-icon span {
@@ -122,17 +145,22 @@
         font-size: clamp(0.65rem, 4vh, 1.15rem);
         text-transform: uppercase;
         white-space: nowrap;
+        text-shadow: 0 0 8px #000;
       }
 
       .accent {
         color: var(--text-accent);
       }
 
+      /* High-contrast distinct clock */
       .time {
-        font-size: clamp(3.5rem, 28vh, 10rem);
-        line-height: 0.95;
+        font-size: clamp(3.8rem, 30vh, 11rem);
+        line-height: 0.9;
         letter-spacing: 2px;
-        text-align: center;
+        color: #ffffff;
+        text-shadow:
+          0 0 16px #000,
+          0 0 8px #000;
       }
 
       .prompt-box {
@@ -142,7 +170,7 @@
         padding: clamp(3px, 1vh, 8px) clamp(10px, 2vw, 24px);
         font-size: clamp(0.5rem, 2.5vh, 0.85rem);
         color: #888;
-        background: none;
+        background: black;
         font-family: inherit;
         letter-spacing: inherit;
         cursor: pointer;
@@ -170,9 +198,10 @@
         color: #999;
         text-transform: uppercase;
         z-index: 10;
+        text-shadow: 0 0 4px #000;
       }
 
-      /* Portrait Fallback: Stack vertically (Icon -> Clock -> Info) */
+      /* Portrait Orientation Fallback */
       @media (orientation: portrait) {
         .screen {
           flex-direction: column;
@@ -181,22 +210,40 @@
           padding: 2vh 2vw;
         }
 
-        .left-col,
-        .right-col {
-          display: contents;
+        .left-col {
+          align-items: center;
+          order: 2;
+          padding-left: 0;
         }
 
-        .icon {
+        .right-col {
+          position: relative;
+          right: auto;
+          top: auto;
+          transform: none;
+          width: 100%;
+          height: auto;
           order: 1;
+
+          -webkit-mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 1) 50%,
+            rgba(0, 0, 0, 0) 100%
+          );
+          mask-image: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 1) 50%,
+            rgba(0, 0, 0, 0) 100%
+          );
         }
 
         .time {
-          order: 2;
           font-size: clamp(3.5rem, 14vh, 8rem);
+          text-align: center;
         }
 
         .info-col {
-          order: 3;
+          align-items: center;
         }
 
         .dot-icon {
@@ -209,7 +256,7 @@
     <div class="stats" id="stats">MEM --</div>
 
     <div class="screen">
-      <!-- Left Area: Clock + Info -->
+      <!-- Foreground: Clock + Info -->
       <div class="left-col">
         <div class="time" id="clock">00:00</div>
         <div class="info-col">
@@ -226,7 +273,7 @@
         </div>
       </div>
 
-      <!-- Right Area: Dot Matrix Icon -->
+      <!-- Background Melt: Dot Matrix Icon -->
       <div class="right-col">
         <div class="icon">
           <div class="dot-icon" id="matrix-icon"></div>
