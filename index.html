@@ -176,25 +176,15 @@
         overflow: hidden;
       }
 
-      /* Static Dot-Matrix Style Colon */
+      /* Static Block Colon */
       .colon-slot {
         position: relative;
         display: inline-flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.22em;
         height: 1em;
         width: 0.35em;
         vertical-align: middle;
-      }
-
-      .colon-dot {
-        width: 0.15em;
-        height: 0.15em;
-        background-color: #ffffff;
-        border-radius: 50%;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       }
 
       .digit-item {
@@ -325,10 +315,7 @@
         <div class="time" id="clock">
           <span class="digit-slot" id="h1"></span>
           <span class="digit-slot" id="h2"></span>
-          <span class="colon-slot" id="colon-slot">
-            <span class="colon-dot"></span>
-            <span class="colon-dot"></span>
-          </span>
+          <span class="colon-slot" id="colon-slot">:</span>
           <span class="digit-slot" id="m1"></span>
           <span class="digit-slot" id="m2"></span>
         </div>
