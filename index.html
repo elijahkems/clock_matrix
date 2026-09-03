@@ -15,6 +15,7 @@
         --dot-grey: #6e6e6e;
         --dot-dark: #3a3a3a;
         --dot-black: #0d0d0d;
+        --anim-speed: 1.8s;
       }
 
       * {
@@ -126,8 +127,8 @@
         border-radius: 50%;
         background: transparent;
         transition:
-          background 1.8s ease,
-          opacity 1.8s ease;
+          background var(--anim-speed) ease,
+          opacity var(--anim-speed) ease;
       }
 
       .dot-icon span.on-grey {
@@ -152,8 +153,11 @@
         color: var(--text-accent);
       }
 
-      /* High-contrast distinct clock */
+      /* High-contrast clock */
       .time {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: clamp(3.8rem, 30vh, 11rem);
         line-height: 0.9;
         letter-spacing: 2px;
@@ -161,6 +165,66 @@
         text-shadow:
           0 0 16px #000,
           0 0 8px #000;
+      }
+
+      .digit-slot {
+        position: relative;
+        display: inline-block;
+        height: 1em;
+        width: 0.62em;
+        vertical-align: middle;
+        overflow: hidden;
+      }
+
+      /* Static Dot-Matrix Style Colon */
+      .colon-slot {
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.22em;
+        height: 1em;
+        width: 0.35em;
+        vertical-align: middle;
+      }
+
+      .colon-dot {
+        width: 0.15em;
+        height: 0.15em;
+        background-color: #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+      }
+
+      .digit-item {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          transform var(--anim-speed) cubic-bezier(0.16, 1, 0.3, 1),
+          opacity var(--anim-speed) cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform, opacity;
+      }
+
+      .digit-item.enter-from-right {
+        transform: translateX(120%);
+        opacity: 0;
+      }
+
+      .digit-item.active {
+        transform: translateX(0%);
+        opacity: 1;
+      }
+
+      .digit-item.exit-to-left {
+        transform: translateX(-120%);
+        opacity: 0;
       }
 
       .prompt-box {
@@ -258,7 +322,16 @@
     <div class="screen">
       <!-- Foreground: Clock + Info -->
       <div class="left-col">
-        <div class="time" id="clock">00:00</div>
+        <div class="time" id="clock">
+          <span class="digit-slot" id="h1"></span>
+          <span class="digit-slot" id="h2"></span>
+          <span class="colon-slot" id="colon-slot">
+            <span class="colon-dot"></span>
+            <span class="colon-dot"></span>
+          </span>
+          <span class="digit-slot" id="m1"></span>
+          <span class="digit-slot" id="m2"></span>
+        </div>
         <div class="info-col">
           <div class="weather">
             AUSTIN HIGH <span class="accent" id="temp-high">--°</span> LOW
@@ -282,6 +355,10 @@
     </div>
 
     <script>
+      /* Configurable Dot Matrix Update Time (10 Seconds) */
+      const DOT_MATRIX_UPDATE_TIME_MS = 10000;
+      const TRANSITION_DURATION_MS = 1800;
+
       const matrixIcon = document.getElementById("matrix-icon");
       const cols = 21;
       const rows = 21;
@@ -294,11 +371,41 @@
         spans.push(span);
       }
 
+      function updateSlot(slotId, newChar) {
+        const slot = document.getElementById(slotId);
+        if (!slot) return;
+
+        const current = slot.querySelector(".digit-item.active");
+        if (current && current.textContent === newChar) return;
+
+        if (current) {
+          current.classList.remove("active");
+          current.classList.add("exit-to-left");
+          setTimeout(() => current.remove(), TRANSITION_DURATION_MS);
+        }
+
+        const next = document.createElement("span");
+        next.textContent = newChar;
+        next.className = "digit-item enter-from-right";
+        slot.appendChild(next);
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            next.classList.remove("enter-from-right");
+            next.classList.add("active");
+          });
+        });
+      }
+
       function updateClock() {
         const now = new Date();
         const hours = String(now.getHours()).padStart(2, "0");
         const minutes = String(now.getMinutes()).padStart(2, "0");
-        document.getElementById("clock").textContent = `${hours}:${minutes}`;
+
+        updateSlot("h1", hours[0]);
+        updateSlot("h2", hours[1]);
+        updateSlot("m1", minutes[0]);
+        updateSlot("m2", minutes[1]);
 
         const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
         const months = [
@@ -408,7 +515,8 @@
         return c;
       }
 
-      function driftBlobs() {
+      /* Updates dot matrix positioning independently */
+      function masterUpdateCycle() {
         const moveAmount = 1.2;
 
         for (let i = blobs.length - 1; i >= 0; i--) {
@@ -473,7 +581,9 @@
 
       render();
       updateStats();
-      setInterval(driftBlobs, 2000);
+
+      /* Controlled by DOT_MATRIX_UPDATE_TIME_MS */
+      setInterval(masterUpdateCycle, DOT_MATRIX_UPDATE_TIME_MS);
 
       document
         .getElementById("clear-btn")
